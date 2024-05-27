@@ -15,19 +15,23 @@ func main() {
 	// Initialize the speaker with a buffer size
 	speaker.Init(SampleRate, SampleRate.N(time.Second/10))
 
-	// Create a sequence of musical elements
-	music := beep.Seq(
-		// Kick drum pattern
+	// Define the kick drum pattern (every second)
+	kickPattern := LoopStreamer(beep.Seq(
 		beep.Take(SampleRate.N(1*time.Second), KickDrum()),
-		beep.Take(SampleRate.N(1*time.Second), SineWave(440)),
-		beep.Take(SampleRate.N(1*time.Second), SineWave(880)),
-		beep.Take(SampleRate.N(1*time.Second), SawtoothWave(440)),
-		beep.Take(SampleRate.N(1*time.Second), SawtoothWave(880)),
-		beep.Take(SampleRate.N(1*time.Second), SquareWave(220)),
-		beep.Take(SampleRate.N(1*time.Second), SquareWave(440)),
+		beep.Silence(SampleRate.N(1*time.Second)),
+	))
+
+	// Define the wave patterns to play sequentially
+	wavePatterns := beep.Seq(
+		beep.Take(SampleRate.N(2*time.Second), SineWave(400)),
+		beep.Take(SampleRate.N(2*time.Second), SineWave(440)),
+		beep.Take(SampleRate.N(2*time.Second), SquareWave(480)),
 	)
 
-	// Play the music sequence
+	// Mix the kick pattern with the wave patterns
+	music := beep.Mix(kickPattern, wavePatterns)
+
+	// Play the mixed music
 	speaker.Play(music)
 
 	// Wait for the music to finish
@@ -35,6 +39,24 @@ func main() {
 
 	// Close the speaker
 	speaker.Close()
+}
+
+// LoopStreamer is a custom streamer that loops the given streamer indefinitely
+func LoopStreamer(s beep.Streamer) beep.Streamer {
+	buf := make([][2]float64, 44100) // Buffer for 1 second of audio
+	_, ok := s.Stream(buf)
+	if !ok {
+		return beep.StreamerFunc(func(samples [][2]float64) (int, bool) {
+			return 0, false
+		})
+	}
+
+	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
+		for i := range samples {
+			samples[i] = buf[i%len(buf)]
+		}
+		return len(samples), true
+	})
 }
 
 func Noise() beep.Streamer {
