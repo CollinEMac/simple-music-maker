@@ -14,11 +14,15 @@ var SampleRate = beep.SampleRate(44100)
 func main() {
 	speaker.Init(SampleRate, SampleRate.N(time.Second/10))
 
-	done := make(chan bool)
-	speaker.Play(beep.Seq(beep.Take(SampleRate.N(2*time.Second), SawtoothWave(440)), beep.Callback(func() {
-		done <- true
-	})))
-	<-done
+	speaker.Play(beep.Seq(beep.Take(SampleRate.N(2*time.Second), SawtoothWave(400))))
+
+	time.Sleep(3 * time.Second)
+
+	speaker.Play(beep.Seq(beep.Take(SampleRate.N(2*time.Second), SawtoothWave(440))))
+
+	time.Sleep(3 * time.Second)
+
+	speaker.Close()
 }
 
 func Noise() beep.Streamer {
