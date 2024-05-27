@@ -1,6 +1,11 @@
 package main
 
 import (
+
+	"fmt"
+	"os/exec"
+	
+	
 	"math"
 	"math/rand"
 	"time"
@@ -12,7 +17,7 @@ import (
 var SampleRate = beep.SampleRate(44100)
 
 func main() {
-	// Initialize the speaker with a buffer size
+	// // Initialize the speaker with a buffer size
 	speaker.Init(SampleRate, SampleRate.N(time.Second/10))
 
 	// Define the kick drum pattern (every second)
@@ -25,7 +30,7 @@ func main() {
 	wavePatterns := beep.Seq(
 		beep.Take(SampleRate.N(2*time.Second), SineWave(400)),
 		beep.Take(SampleRate.N(2*time.Second), SineWave(440)),
-		beep.Take(SampleRate.N(2*time.Second), SquareWave(480)),
+		beep.Take(SampleRate.N(2*time.Second), SineWave(480)),
 	)
 
 	// Mix the kick pattern with the wave patterns
@@ -135,5 +140,13 @@ func KickDrum() beep.Streamer {
 		}
 		return len(samples), true
 	})
+}
 
+func Vocals() {
+	text := "Welcome to the 1 X Developer Podcast"
+	cmd := exec.Command("espeak", text)
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
 }
