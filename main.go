@@ -1,11 +1,9 @@
 package main
 
 import (
-
 	"fmt"
 	"os/exec"
-	
-	
+
 	"math"
 	"math/rand"
 	"time"
@@ -14,7 +12,9 @@ import (
 	"github.com/gopxl/beep/speaker"
 )
 
-var SampleRate = beep.SampleRate(44100)
+const rate = 44100
+
+var SampleRate = beep.SampleRate(rate)
 
 func main() {
 	// // Initialize the speaker with a buffer size
@@ -48,7 +48,7 @@ func main() {
 
 // LoopStreamer is a custom streamer that loops the given streamer indefinitely
 func LoopStreamer(s beep.Streamer) beep.Streamer {
-	buf := make([][2]float64, 44100) // Buffer for 1 second of audio
+	buf := make([][2]float64, rate) // Buffer for 1 second of audio
 	_, ok := s.Stream(buf)
 	if !ok {
 		return beep.StreamerFunc(func(samples [][2]float64) (int, bool) {
@@ -80,7 +80,7 @@ func SineWave(freq float64) beep.Streamer {
 		for i := range samples {
 			samples[i][0] = math.Sin(2 * math.Pi * phase)
 			samples[i][1] = samples[i][0]
-			phase += freq / float64(beep.SampleRate(44100))
+			phase += freq / float64(beep.SampleRate(rate))
 			if phase >= 1.0 {
 				phase -= 1.0
 			}
@@ -100,7 +100,7 @@ func SquareWave(freq float64) beep.Streamer {
 				samples[i][0] = 1
 			}
 			samples[i][1] = samples[i][0]
-			phase += freq / float64(beep.SampleRate(44100))
+			phase += freq / float64(beep.SampleRate(rate))
 			if phase >= 1.0 {
 				phase -= 1.0
 			}
@@ -115,7 +115,7 @@ func SawtoothWave(freq float64) beep.Streamer {
 		for i := range samples {
 			samples[i][0] = phase
 			samples[i][1] = samples[i][0]
-			phase += freq / float64(beep.SampleRate(44100))
+			phase += freq / float64(beep.SampleRate(rate))
 			if phase >= 1.0 {
 				phase -= 1.0
 			}
