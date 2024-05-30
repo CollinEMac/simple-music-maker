@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gopxl/beep"
+	"github.com/gopxl/beep/generators"
 	"github.com/gopxl/beep/speaker"
 )
 
@@ -23,7 +24,7 @@ func main() {
 	// Define the kick drum pattern (every second)
 	kickPattern := LoopStreamer(beep.Seq(
 		beep.Take(SampleRate.N(1*time.Second), KickDrum()),
-		beep.Silence(SampleRate.N(1*time.Second)),
+		generators.Silence(SampleRate.N(1*time.Second)),
 	))
 
 	// Define the wave patterns to play sequentially
