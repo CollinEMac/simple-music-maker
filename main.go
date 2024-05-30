@@ -56,9 +56,11 @@ func main() {
 
 	// Play the synths in the main goroutine
 	speaker.Play(beep.Seq(
-		beep.Take(SampleRate.N(1*time.Second), Chiptune(440, 0.5)),    // A4 note
-		beep.Take(SampleRate.N(1*time.Second), Chiptune(494, 0.3)),    // B4 note (with a different pulse width)
-		beep.Take(SampleRate.N(1*time.Second), Chiptune(523.25, 0.5)), // C5 note
+		beep.Take(SampleRate.N(1*time.Second), Chiptune(440, 0.5)),            // A4 note
+		beep.Take(SampleRate.N(1*time.Second), Chiptune(494, 0.3)),            // B4 note (with a different pulse width)
+		beep.Take(SampleRate.N(1*time.Second), Chiptune(523.25, 0.5)),         // C5 note
+		beep.Take(SampleRate.N(2*time.Second), BowedInstrument(523.25, 0.05)), // C5 note with subtle vibrato
+		beep.Take(SampleRate.N(2*time.Second), BowedInstrument(587.33, 0.1)),  // D5 note with more vibrato
 	))
 
 	wg.Done()
@@ -115,6 +117,33 @@ func Chiptune(freq float64, pulseWidth float64) beep.Streamer {
 			samples[i][1] = samples[i][0]
 
 			phase += freq / float64(beep.SampleRate(rate))
+			if phase >= 1.0 {
+				phase -= 1.0
+			}
+		}
+		return len(samples), true
+	})
+}
+
+func BowedInstrument(freq float64, vibrato float64) beep.Streamer {
+	phase := 0.0
+	vibratoPhase := 0.0
+	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
+		for i := range samples {
+			// Sine wave for the basic tone
+			sineWave := math.Sin(2 * math.Pi * phase)
+
+			// Apply vibrato
+			vibratoOffset := math.Sin(2*math.Pi*vibratoPhase) * vibrato
+			vibratoPhase += 5.0 / float64(beep.SampleRate(rate))
+			if vibratoPhase >= 1.0 {
+				vibratoPhase -= 1.0
+			}
+
+			samples[i][0] = sineWave + vibratoOffset
+			samples[i][1] = samples[i][0]
+
+			phase += (freq + vibratoOffset) / float64(beep.SampleRate(rate))
 			if phase >= 1.0 {
 				phase -= 1.0
 			}
