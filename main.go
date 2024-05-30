@@ -6,11 +6,9 @@ import (
 	"sync"
 
 	"math"
-	"math/rand"
 	"time"
 
 	"github.com/gopxl/beep"
-	"github.com/gopxl/beep/generators"
 	"github.com/gopxl/beep/speaker"
 )
 
@@ -25,42 +23,42 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	// Play the kick drum in a separate goroutine
-	go func() {
-		speaker.Play(beep.Seq(
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-			generators.Silence(SampleRate.N(125*time.Millisecond)),
-			beep.Callback(func() {
-				wg.Done()
-			}),
-		))
-	}()
+	// // Play the kick drum in a separate goroutine
+	// go func() {
+	// 	speaker.Play(beep.Seq(
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
+	// 		beep.Callback(func() {
+	// 			wg.Done()
+	// 		}),
+	// 	))
+	// }()
 
 	// Play the synths in the main goroutine
 	speaker.Play(beep.Seq(
-		beep.Take(SampleRate.N(2*time.Second), SineWave(400)),
-		beep.Take(SampleRate.N(2*time.Second), SineWave(440)),
-		beep.Take(SampleRate.N(2*time.Second), SineWave(480)),
+		beep.Take(SampleRate.N(1*time.Second), Chiptune(440, 0.5)),    // A4 note
+		beep.Take(SampleRate.N(1*time.Second), Chiptune(494, 0.3)),    // B4 note (with a different pulse width)
+		beep.Take(SampleRate.N(1*time.Second), Chiptune(523.25, 0.5)), // C5 note
 	))
 
 	wg.Done()
@@ -70,66 +68,6 @@ func main() {
 
 	// Close the speaker
 	speaker.Close()
-}
-
-func Noise() beep.Streamer {
-	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
-		for i := range samples {
-			samples[i][0] = rand.Float64()*2 - 1
-			samples[i][1] = rand.Float64()*2 - 1
-		}
-		return len(samples), true
-	})
-}
-
-func SineWave(freq float64) beep.Streamer {
-	phase := 0.0
-	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
-		for i := range samples {
-			samples[i][0] = math.Sin(2 * math.Pi * phase)
-			samples[i][1] = samples[i][0]
-			phase += freq / float64(beep.SampleRate(rate))
-			if phase >= 1.0 {
-				phase -= 1.0
-			}
-		}
-		return len(samples), true
-	})
-}
-
-func SquareWave(freq float64) beep.Streamer {
-	phase := 0.0
-	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
-		for i := range samples {
-			step := int(math.Round(phase))
-			if step == 0 {
-				samples[i][0] = -1
-			} else {
-				samples[i][0] = 1
-			}
-			samples[i][1] = samples[i][0]
-			phase += freq / float64(beep.SampleRate(rate))
-			if phase >= 1.0 {
-				phase -= 1.0
-			}
-		}
-		return len(samples), true
-	})
-}
-
-func SawtoothWave(freq float64) beep.Streamer {
-	phase := 0.0
-	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
-		for i := range samples {
-			samples[i][0] = phase
-			samples[i][1] = samples[i][0]
-			phase += freq / float64(beep.SampleRate(rate))
-			if phase >= 1.0 {
-				phase -= 1.0
-			}
-		}
-		return len(samples), true
-	})
 }
 
 func KickDrum() beep.Streamer {
@@ -149,6 +87,37 @@ func KickDrum() beep.Streamer {
 			// Add a low-frequency sine wave to simulate the "boom" of an 808 drum beat
 			samples[i][0] += 0.25 * math.Sin(2*math.Pi*100*attack)
 			samples[i][1] += 0.25 * math.Sin(2*math.Pi*100*attack)
+		}
+		return len(samples), true
+	})
+}
+
+func Chiptune(freq float64, pulseWidth float64) beep.Streamer {
+	phase := 0.0
+	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
+		for i := range samples {
+			// Square wave
+			squareWave := 0.0
+			if phase < pulseWidth {
+				squareWave = 1.0
+			} else {
+				squareWave = -1.0
+			}
+
+			// Pulse wave
+			pulseWave := 0.0
+			if phase < pulseWidth {
+				pulseWave = 1.0
+			}
+
+			// Mix square wave and pulse wave
+			samples[i][0] = squareWave*0.5 + pulseWave*0.5
+			samples[i][1] = samples[i][0]
+
+			phase += freq / float64(beep.SampleRate(rate))
+			if phase >= 1.0 {
+				phase -= 1.0
+			}
 		}
 		return len(samples), true
 	})
