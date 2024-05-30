@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os/exec"
+	"sync"
 
 	"math"
 	"math/rand"
@@ -18,51 +19,57 @@ const rate = 44100
 var SampleRate = beep.SampleRate(rate)
 
 func main() {
-	// // Initialize the speaker with a buffer size
+	// Initialize the speaker with a buffer size
 	speaker.Init(SampleRate, SampleRate.N(time.Second/10))
 
-	// Define the kick drum pattern (every second)
-	kickPattern := LoopStreamer(beep.Seq(
-		beep.Take(SampleRate.N(1*time.Second), KickDrum()),
-		generators.Silence(SampleRate.N(1*time.Second)),
-	))
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	// Define the wave patterns to play sequentially
-	wavePatterns := beep.Seq(
+	// Play the kick drum in a separate goroutine
+	go func() {
+		speaker.Play(beep.Seq(
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
+			generators.Silence(SampleRate.N(125*time.Millisecond)),
+			beep.Callback(func() {
+				wg.Done()
+			}),
+		))
+	}()
+
+	// Play the synths in the main goroutine
+	speaker.Play(beep.Seq(
 		beep.Take(SampleRate.N(2*time.Second), SineWave(400)),
 		beep.Take(SampleRate.N(2*time.Second), SineWave(440)),
 		beep.Take(SampleRate.N(2*time.Second), SineWave(480)),
-	)
+	))
 
-	// Mix the kick pattern with the wave patterns
-	music := beep.Mix(kickPattern, wavePatterns)
+	wg.Done()
 
-	// Play the mixed music
-	speaker.Play(music)
-
-	// Wait for the music to finish
-	time.Sleep(10 * time.Second)
+	// Wait for both goroutines to finish
+	wg.Wait()
 
 	// Close the speaker
 	speaker.Close()
-}
-
-// LoopStreamer is a custom streamer that loops the given streamer indefinitely
-func LoopStreamer(s beep.Streamer) beep.Streamer {
-	buf := make([][2]float64, rate) // Buffer for 1 second of audio
-	_, ok := s.Stream(buf)
-	if !ok {
-		return beep.StreamerFunc(func(samples [][2]float64) (int, bool) {
-			return 0, false
-		})
-	}
-
-	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
-		for i := range samples {
-			samples[i] = buf[i%len(buf)]
-		}
-		return len(samples), true
-	})
 }
 
 func Noise() beep.Streamer {
@@ -131,13 +138,17 @@ func KickDrum() beep.Streamer {
 			// Sharp attack
 			attack := float64(i) / float64(len(samples))
 			if attack < 0.01 { // Short attack
-				samples[i][0] = 0.5 // Volume
-				samples[i][1] = 0.5 // Volume
+				samples[i][0] = 1.0 // Volume
+				samples[i][1] = 1.0 // Volume
 			} else {
 				// Decay and sustain
-				samples[i][0] = 0.25 * math.Exp(-attack*20) // Decreasing amplitude over time
-				samples[i][1] = 0.25 * math.Exp(-attack*20) // Decreasing amplitude over time
+				samples[i][0] = 0.5 * math.Exp(-attack*20) // Decreasing amplitude over time
+				samples[i][1] = 0.5 * math.Exp(-attack*20) // Decreasing amplitude over time
 			}
+
+			// Add a low-frequency sine wave to simulate the "boom" of an 808 drum beat
+			samples[i][0] += 0.25 * math.Sin(2*math.Pi*100*attack)
+			samples[i][1] += 0.25 * math.Sin(2*math.Pi*100*attack)
 		}
 		return len(samples), true
 	})
