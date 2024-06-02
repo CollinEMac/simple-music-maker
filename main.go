@@ -12,7 +12,7 @@ import (
 	"github.com/gopxl/beep/speaker"
 )
 
-var keys = map[string]float32{
+var keys = map[string]float64{
 	"A0":  27.50000,
 	"A0#": 29.13524,
 	"B0":  30.86771,
@@ -187,6 +187,20 @@ func main() {
 
 	// Close the speaker
 	speaker.Close()
+}
+
+func playNotes(notes []string, dur time.Duration, wg sync.WaitGroup) {
+	// Play multiple notes at once for a duration
+	for _, note := range notes {
+		go func(note2 string) {
+			speaker.Play(beep.Seq(
+				beep.Take(SampleRate.N(dur*time.Second), Chiptune(keys[note2], 0.5)),
+				beep.Callback(func() {
+					wg.Done()
+				}),
+			))
+		}(note)
+	}
 }
 
 func KickDrum() beep.Streamer {
