@@ -5,7 +5,6 @@ import (
 	"os/exec"
 	"sync"
 
-	"math"
 	"time"
 
 	"github.com/gopxl/beep"
@@ -112,72 +111,23 @@ func main() {
 	speaker.Init(SampleRate, SampleRate.N(time.Second/10))
 
 	var wg sync.WaitGroup
-	wg.Add(3)
-
-	// Play the kick drum in a separate goroutine
-	// go func() {
-	// 	speaker.Play(beep.Seq(
-	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
-	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
-	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
-	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
-	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
-	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
-	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
-	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
-	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
-	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-	// 		generators.Silence(SampleRate.N(125*time.Millisecond)),
-	// 		beep.Take(SampleRate.N(125*time.Millisecond), KickDrum()),
-	// 		beep.Callback(func() {
-	// 			wg.Done()
-	// 		}),
-	// 	))
-	// }()
-
-	// go func() {
-	// 	Vocals("Welcome")
-	// 	time.Sleep(125 * time.Millisecond)
-	// 	Vocals("Welcome")
-	// 	time.Sleep(125 * time.Millisecond)
-	// 	Vocals("Welcome")
-	// 	time.Sleep(125 * time.Millisecond)
-	// 	Vocals("Welcome")
-	// 	time.Sleep(125 * time.Millisecond)
-	// 	Vocals("Welcome")
-	// 	time.Sleep(125 * time.Millisecond)
-	// 	Vocals("Welcome")
-	// 	time.Sleep(125 * time.Millisecond)
-	// 	Vocals("Welcome")
-	// 	time.Sleep(125 * time.Millisecond)
-	// 	Vocals("Welcome")
-	// 	time.Sleep(125 * time.Millisecond)
-	// 	Vocals("Welcome")
-	// 	time.Sleep(125 * time.Millisecond)
-	// 	Vocals("Welcome")
-	// 	Vocals("to the 1 X Developer Podcast")
-	// 	wg.Done()
-	// }()
-	// beep.Take(SampleRate.N(7*time.Second), ChiptuneModulated(300.0, 523.25, 0.5, 1*time.Second, 7*time.Second)),
+	wg.Add(1)
 
 	// Play the synths in the main goroutine
 	go func() {
 		speaker.Play(beep.Seq(
-			beep.Take(SampleRate.N(1*time.Second), PlayChord([]string{"C4", "E4", "G4"})),
-			beep.Take(SampleRate.N(1*time.Second), PlayChord([]string{"E4", "G4#", "B4"})),
-			beep.Take(SampleRate.N(1*time.Second), PlayChord([]string{"C4", "E4", "G4"})),
+			beep.Take(SampleRate.N(1750*time.Millisecond), ChiptuneModulated(keys["C4"], keys["C5"], 0.5, 2*time.Second, 7*time.Second)),
+			beep.Take(SampleRate.N(250*time.Millisecond), PlayChord([]string{"E4", "G4#", "B4"})),
+			beep.Take(SampleRate.N(1750*time.Millisecond), PlayChord([]string{"E4", "G4#", "B4"})),
+			beep.Callback(func() {
+				Vocals("1 X Developer Podcast")
+			}),
+			beep.Take(SampleRate.N(500*time.Millisecond), PlayChord([]string{"G4", "B4", "D5"})),
+			beep.Callback(func() {
+				wg.Done()
+			}),
 		))
 	}()
-
-	wg.Done()
 
 	// Wait for both goroutines to finish
 	wg.Wait()
@@ -192,28 +142,6 @@ func PlayChord(notes []string) beep.Streamer {
 		streams = append(streams, Chiptune(keys[note], 0.5))
 	}
 	return beep.Mix(streams...)
-}
-
-func KickDrum() beep.Streamer {
-	return beep.StreamerFunc(func(samples [][2]float64) (int, bool) {
-		for i := range samples {
-			// Sharp attack
-			attack := float64(i) / float64(len(samples))
-			if attack < 0.01 { // Short attack
-				samples[i][0] = 1.0 // Volume
-				samples[i][1] = 1.0 // Volume
-			} else {
-				// Decay and sustain
-				samples[i][0] = 0.5 * math.Exp(-attack*20) // Decreasing amplitude over time
-				samples[i][1] = 0.5 * math.Exp(-attack*20) // Decreasing amplitude over time
-			}
-
-			// Add a low-frequency sine wave to simulate the "boom" of an 808 drum beat
-			samples[i][0] += 0.25 * math.Sin(2*math.Pi*100*attack)
-			samples[i][1] += 0.25 * math.Sin(2*math.Pi*100*attack)
-		}
-		return len(samples), true
-	})
 }
 
 func ChiptuneModulated(startFreq, endFreq, pulseWidth float64, duration, repeatDuration time.Duration) beep.Streamer {
