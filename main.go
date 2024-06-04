@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"os"
 	"os/exec"
-	"sync"
 
 	"time"
 
 	"github.com/gopxl/beep"
-	"github.com/gopxl/beep/speaker"
+	"github.com/gopxl/beep/wav"
 )
 
 var keys = map[string]float64{
@@ -107,33 +107,36 @@ const rate = 44100
 var SampleRate = beep.SampleRate(rate)
 
 func main() {
-	// Initialize the speaker with a buffer size
-	speaker.Init(SampleRate, SampleRate.N(time.Second/10))
+	// Create a new WAV file
+	file, err := os.Create("intro.wav")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	// Create a new beep.Format
+	format := beep.Format{
+		NumChannels: 2,
+		SampleRate:  beep.SampleRate(rate),
+		Precision:   2,
+	}
 
-	// Play the synths in the main goroutine
-	go func() {
-		speaker.Play(beep.Seq(
-			beep.Take(SampleRate.N(1750*time.Millisecond), ChiptuneModulated(keys["C4"], keys["C5"], 0.5, 2*time.Second, 7*time.Second)),
-			beep.Take(SampleRate.N(250*time.Millisecond), PlayChord([]string{"E4", "G4#", "B4"})),
-			beep.Take(SampleRate.N(1750*time.Millisecond), PlayChord([]string{"E4", "G4#", "B4"})),
-			beep.Callback(func() {
-				Vocals("1 X Developer Podcast")
-			}),
-			beep.Take(SampleRate.N(500*time.Millisecond), PlayChord([]string{"G4", "B4", "D5"})),
-			beep.Callback(func() {
-				wg.Done()
-			}),
-		))
-	}()
+	// Create a new beep.Streamer that plays the sequence of sounds
+	streamer := beep.Seq(
+		beep.Take(SampleRate.N(1750*time.Millisecond), ChiptuneModulated(keys["C4"], keys["C5"], 0.5, 2*time.Second, 7*time.Second)),
+		beep.Take(SampleRate.N(250*time.Millisecond), PlayChord([]string{"E4", "G4#", "B4"})),
+		beep.Take(SampleRate.N(1750*time.Millisecond), PlayChord([]string{"E4", "G4#", "B4"})),
+		beep.Callback(func() {
+			Vocals("1 X Developer Podcast")
+		}),
+		beep.Take(SampleRate.N(500*time.Millisecond), PlayChord([]string{"G4", "B4", "D5"})),
+	)
 
-	// Wait for both goroutines to finish
-	wg.Wait()
-
-	// Close the speaker
-	speaker.Close()
+	// Encode the streamer to the WAV file
+	err = wav.Encode(file, streamer, format)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func PlayChord(notes []string) beep.Streamer {
@@ -235,9 +238,17 @@ func Chiptune(freq float64, pulseWidth float64) beep.Streamer {
 }
 
 func Vocals(text string) {
-	cmd := exec.Command("espeak", text)
-	err := cmd.Run()
+	// Create a new WAV file
+	file, err := os.Create("vocals.wav")
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	// Create a new command to run espeak and write the output to the WAV file
+	cmd := exec.Command("espeak", "-w", "vocals.wav", text)
+	err = cmd.Run()
+	if err != nil {
+		log.Fatal(err)
 	}
 }
