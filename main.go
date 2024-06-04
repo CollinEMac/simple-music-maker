@@ -166,17 +166,14 @@ func main() {
 	// 	Vocals("to the 1 X Developer Podcast")
 	// 	wg.Done()
 	// }()
+	// beep.Take(SampleRate.N(7*time.Second), ChiptuneModulated(300.0, 523.25, 0.5, 1*time.Second, 7*time.Second)),
 
 	// Play the synths in the main goroutine
 	go func() {
 		speaker.Play(beep.Seq(
-			beep.Take(SampleRate.N(7*time.Second), ChiptuneModulated(300.0, 523.25, 0.5, 1*time.Second, 7*time.Second)),
-		// beep.Take(SampleRate.N(1*time.Second), Chiptune(440, 0.5)),    // A4 note
-		// beep.Take(SampleRate.N(1*time.Second), Chiptune(494, 0.3)),    // B4 note (with a different pulse width)
-		// beep.Take(SampleRate.N(1*time.Second), Chiptune(523.25, 0.5)), // C5 note
-		// beep.Callback(func() {
-		// 	wg.Done()
-		// }),
+			beep.Take(SampleRate.N(1*time.Second), PlayChord([]string{"C4", "E4", "G4"})),
+			beep.Take(SampleRate.N(1*time.Second), PlayChord([]string{"E4", "G4#", "B4"})),
+			beep.Take(SampleRate.N(1*time.Second), PlayChord([]string{"C4", "E4", "G4"})),
 		))
 	}()
 
@@ -189,18 +186,12 @@ func main() {
 	speaker.Close()
 }
 
-func playNotes(notes []string, dur time.Duration, wg sync.WaitGroup) {
-	// Play multiple notes at once for a duration
+func PlayChord(notes []string) beep.Streamer {
+	var streams []beep.Streamer
 	for _, note := range notes {
-		go func(note2 string) {
-			speaker.Play(beep.Seq(
-				beep.Take(SampleRate.N(dur*time.Second), Chiptune(keys[note2], 0.5)),
-				beep.Callback(func() {
-					wg.Done()
-				}),
-			))
-		}(note)
+		streams = append(streams, Chiptune(keys[note], 0.5))
 	}
+	return beep.Mix(streams...)
 }
 
 func KickDrum() beep.Streamer {
